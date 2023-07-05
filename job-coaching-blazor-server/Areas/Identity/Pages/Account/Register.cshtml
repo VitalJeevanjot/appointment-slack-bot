@@ -1,0 +1,174 @@
+﻿@page
+
+@model RegisterModel
+
+@using Blazored.Toast
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Components;
+@using Microsoft.JSInterop;
+@using job_coaching_blazor_server.Shared;
+@using job_coaching_blazor_server.Data;
+@using SlackAPI;
+
+@inject IJSRuntime JSRuntime;
+
+
+@inject IToastService toastService
+
+@functions {
+    public void makeToast(string text)
+    {
+        RenderFragment message =@<text>@text</text>;
+        
+        toastService.ShowToast(ToastLevel.Info, message);
+        Console.WriteLine("Not right!");
+    }
+}
+
+@{
+    ViewData["Title"] = "Register";
+    toastService.ShowError("Error 12345!");
+    Console.WriteLine("Starting....");
+}
+
+
+<h1>@ViewData["Title"]</h1>
+@*<component type="typeof(ToastMaker)" render-mode="ServerPrerendered"/>*@
+@*<component type="typeof(BlazoredToasts)" render-mode="ServerPrerendered">
+    <param name="Position" value="ToastPosition.BottomRight" />
+    <param name="Timeout" value="10" />
+    <param name="ShowProgressBar" value="true" />
+</component>*@
+
+<div class="row">
+    <div class="col-md-4">
+
+        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" onsubmit="return customCheck()">
+            <h2>Create a new account.</h2>
+            <hr />
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <label asp-for="Input.Email">Email</label>
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label asp-for="Input.Password">Password</label>
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label asp-for="Input.ConfirmPassword">Confirm Password</label>
+                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+            </div>
+            <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+        </form>
+
+    </div>
+
+    <div class="position-fixed top-0 start-50 p-3" style="z-index: 11">
+        <div id="liveToast" class="toast hide" style="background-color: indianred; color: white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Invalid Email</strong>
+                <small>11 mins ago</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                Email not reigstered in slack group.
+            </div>
+        </div>
+    </div>
+   @* @{
+        async Task<bool> SlackCheck()
+        {
+            Console.WriteLine("calling slackcheck");
+            var slackClient = new SlackTaskClient(Secrets.token);
+            string email = Model.Input.Email;
+            Console.WriteLine(email);
+            var response = await slackClient.GetUserByEmailAsync(email);
+
+            if (response.user == null)
+            {
+                return false;
+            } else
+            {
+                return true;
+            }
+        }
+    }*@
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script>
+        var toastElList = [].slice.call(document.querySelectorAll('.toast'))
+        var toastList = toastElList.map(function (toastEl) {
+        return new bootstrap.Toast(toastEl)
+        })
+        console.log("Hi");
+        console.log(toastList);
+
+        function make_toast() {
+        toastList[0].show();
+        return false
+        }
+        function get_email() {
+        return document.getElementById("input_email").value;
+        }
+
+        function customCheck() {
+        console.log("customCheck")
+
+        //
+        //    var slackClient = 
+        //        new SlackTaskClient(Secrets.token);
+        //    string email = Model.Input.Email;
+        //        Console.WriteLine(email);
+        //    var response = await slackClient.GetUserByEmailAsync(email);
+
+
+        //    if (response.user == null)
+        //    {
+        //        Console.WriteLine("Did the error");
+        //        await Task.Delay(5000);
+        //        await JSRuntime.InvokeAsync<Boolean>("make_toast");
+        //    }
+        //}
+            //DotNet.invokeMethod("job-coaching-blazor-server", "SlackCheck")
+            return true
+        }
+        
+    </script>
+    @*<div class="col-md-6 col-md-offset-2">
+        <section>
+            <h3>Use another service to register.</h3>
+            <hr />
+            @{
+                if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                {
+                    <div>
+                        <p>
+                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
+                            about setting up this ASP.NET application to support logging in via external services</a>.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
+                        <div>
+                            <p>
+                                @foreach (var provider in Model.ExternalLogins!)
+                                {
+                                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
+                                }
+                            </p>
+                        </div>
+                    </form>
+                }
+            }
+        </section>
+    </div>*@
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

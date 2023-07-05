@@ -1,0 +1,108 @@
+﻿@using job_coaching_blazor_server.Data;
+@using job_coaching_blazor_server.Services
+@using job_coaching_blazor_server.Data.Models
+@inject UserPostService userPostService
+@inject SlackAPICalls slackAPICalls;
+@inject IToastService toastService
+
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@using SlackAPI;
+
+@using Variant = MudBlazor.Variant;
+
+<MudButton Style="color: white; background-color: black" Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.Start))">Posts</MudButton>
+@*<MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.End))">End</MudButton>
+<MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.Top))">Top</MudButton>
+<MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.Bottom))">Bottom</MudButton>
+*@
+<MudDrawer Style="background-color: #491449" @bind-Open="@open" Width="@width" Height="@height" Anchor="@anchor" Elevation="1" Variant="@DrawerVariant.Temporary">
+    <MudDrawerHeader>
+        <MudText Style="color: white" Typo="Typo.h6">Schedules</MudText>
+    </MudDrawerHeader>
+    <MudNavMenu>
+        @foreach (UserPost post in  userPosts)
+        {
+            <MudCard Style="background-color: black; color: white; border-radius: 20px; margin: 10px">
+                <MudCardContent>
+                    <MudText>@post.JobTitle</MudText>
+                    <MudText Typo="Typo.body2">→ @post.OtherDetails</MudText>
+                    <MudText Typo="Typo.caption"> <br> ▹ @post.RequiredHelp</MudText>
+                    <MudText Style="font-size: .7rem; color: #e4e4e4;"> <br> Created on: @post.PostCreated</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <a style="color: teal" href="./appointments/@post.UrlId" target="blank">Appointments</a>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" @onclick="() => DeletePost(post.UrlId)">Delete</MudButton>
+                </MudCardActions>
+            </MudCard>
+        }
+        
+    </MudNavMenu>
+</MudDrawer>
+@code {
+    bool open;
+    Anchor anchor;
+    string width, height;
+    private List<UserPost> userPosts;
+
+    void OpenDrawer(Anchor anchor)
+    {
+        open = true;
+        this.anchor = anchor;
+
+        switch (anchor)
+        {
+            case Anchor.Start:
+                width = "300px";
+                height = "100vh";
+                break;
+                //case Anchor.End:
+                //    width = "400px";
+                //    height = "100%";
+                //    break;
+                //case Anchor.Bottom:
+                //    width = "100%";
+                //    height = "200px";
+                //    break;
+                //case Anchor.Top:
+                //    width = "100%";
+                //    height = "350px";
+                //    break;
+        }
+    }
+    public async void GetUserPosts()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var email = user.FindFirst(c => c.Type == ClaimTypes.Email)?.Value;
+        userPosts = userPostService.GetUserAllPosts(email);
+        userPosts.Reverse();
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        GetUserPosts();
+    }
+
+
+    public async void DeletePost(string UrlID)
+    {
+        // Delete post in slack, then Db, show toast then update sidebar
+        var userPost = userPostService.GetUserPost(UrlID);
+        string[] ids = userPost.PostId.Split("_&&_");
+        DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(double.Parse(ids[1]));
+        //Console.WriteLine(dateTime);
+        slackAPICalls.DeletePost(ids[0], dateTime);
+
+        userPostService.RemoveUserPost(UrlID);
+
+        GetUserPosts();
+
+        toastService.ShowInfo("Post Deleted!");
+
+    }
+
+
+}

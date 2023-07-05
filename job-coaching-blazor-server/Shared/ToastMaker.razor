@@ -1,0 +1,17 @@
+﻿@using Blazored.Toast
+@using Blazored.Toast.Services
+@inject IToastService toastService
+
+@*<h3>Toast</h3>
+*@
+@*<button class="btn btn-info" @onclick="@(() => toastService.ShowInfo("I'm an INFO message"))">Info Toast</button>
+*@
+
+<button class="btn btn-info" @onclick="@(() => Toast("edingward"))">Info Toast</button>
+
+@code {
+    public void Toast(string text)
+    {
+        toastService.ShowError(text);
+    }
+}

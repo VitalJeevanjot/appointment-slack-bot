@@ -1,0 +1,313 @@
+﻿@page "/form"
+@attribute [Authorize]
+@using System.Net.Http
+@using System.Text.Json;
+@using System.Text;
+@inject HttpClient httpClient;
+@using Newtonsoft.Json;
+@inject IToastService toastService
+
+
+@using job_coaching_blazor_server.Services
+@inject UserPostService userPostService
+@inject SlackAPICalls slackApiCalls
+@using job_coaching_blazor_server.Data
+@using job_coaching_blazor_server.Data.Models
+
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@inject NavigationManager NavigationManager
+
+<div class="page">
+
+    <PageTitle>Index</PageTitle>
+
+    <Sidebar @ref="sidebar"/>
+
+    <main>
+
+    <div class="container">
+        <div class="row justify-content-center h2" style="color: #efefef">Please share some details</div>
+        <div class="row justify-content-center pt-4">
+            <input type="text" class="form-control" placeholder="Job Title *" aria-label="Job Title"
+                   aria-describedby="job-title-text" style="width: 80vw; max-width: 500px; background-color: #efefef"
+            @bind=job_title disabled="@isDisabled" />
+        </div>
+
+@*        <div class="row justify-content-center pt-4">
+            <input type="text" class="form-control" placeholder="Email (It will not be shared) *" aria-label="Email not sharable"
+                   aria-describedby="email-non-sharable-text" style="width: 80vw; max-width: 500px; background-color: #efefef"
+            @bind=email disabled="@isDisabled" />
+        </div>*@
+
+        <div class="row justify-content-center pt-4">
+            <input type="number" class="form-control" placeholder="Years of experience *" min="0" max="100" aria-label="years experience"
+                   aria-describedby="years-experience-number" style="width: 80vw; max-width: 500px; background-color: #efefef" 
+            @bind="years_of_experience" disabled="@isDisabled" />
+        </div>
+
+        <div class="row justify-content-center pt-4">
+            <input type="number" class="form-control" placeholder="Size of company" min="0" aria-label="size-of-company"
+                   aria-describedby="size-of-company-text" style="width: 80vw; max-width: 500px; background-color: #efefef" 
+            @bind="size_of_company" disabled="@isDisabled" />
+        </div>
+
+        <div class="row justify-content-center pt-4">
+            <textarea class="form-control" placeholder="Other details" aria-label="other-details"
+                      aria-describedby="other-details-text" style="width: 80vw; max-width: 500px; background-color: #efefef" 
+            @bind="other_details" disabled="@isDisabled"></textarea>
+        </div>
+
+        @*    <div class="row justify-content-center pt-4">
+        <select class="form-select" aria-label="Default select example"
+        style="width: 80vw; max-width: 500px;"
+        @onchange="AskToChange">
+        <option value="1" selected>Make you 10x better</option>
+        <option value="2">Ask about salary numbers</option>
+        <option value="3">Other</option>
+        </select>
+        </div>*@
+        <div class="row justify-content-center pt-4">
+            <div class="list-group" style="width: 80vw; max-width: 500px; background-color: #efefef">
+                @for (int i = 0; i < 3; i++)
+                    {
+                        var local = i;
+                        <label class="list-group-item" style="background-color: #efefef">
+                            <input class="form-check-input me-1" type="checkbox" @bind="checkboxes[local]"    
+                            disabled="@isDisabled"
+                            >
+                            @checkboxes_text[i]
+                        </label>
+                    }
+                    @*            <label class="list-group-item">
+                <input class="form-check-input me-1" type="checkbox" value="" @ref="choice1" @bind="isChecked1" disabled="@isDisabled">
+                Make you 10x better
+                </label>
+                <label class="list-group-item">
+                <input class="form-check-input me-1" type="checkbox" value="" @ref="choice2" @bind="isChecked2" disabled="@isDisabled">
+                Ask about salary numbers
+                </label>
+                <label class="list-group-item">
+                <input class="form-check-input me-1" type="checkbox" value="" @ref="choice3" @bind="isChecked3" disabled="@isDisabled">
+                Other
+                </label>*@
+                </div>
+            </div>
+
+            @if (checkboxes[2])
+            {
+                <div class="row justify-content-center pt-4">
+                    <textarea class="form-control" placeholder="More details" aria-label="for-the-type-more-details"
+                    aria-describedby="more-details-type-text" style="width: 80vw; max-width: 500px;"
+                    @bind=other_selected_text></textarea>
+                </div>
+            }
+
+
+            <div class="row justify-content-center pt-4">
+                <button type="button" class="btn btn-success" style="width:50px; height: 50px; border-radius: 50%"
+                @onclick="SubmitForm">
+                    @if(isDisabled == true)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    } else
+                    {
+                        <i class="bi bi-check-lg" style="font-size: 1.5rem;"></i>
+                    }
+                </button>
+            </div>
+
+
+
+        </div>
+    </main>
+
+</div>
+
+@code {
+    public bool isDisabled = false;
+    private bool show_text = false;
+    string job_title = "";
+    //string email = "";
+    string years_of_experience = "";
+    string size_of_company = "";
+    string other_details = "";
+    //string selected_value = "1";
+    string other_selected_text = "";
+
+    bool[] checkboxes { get; set; } = new bool[3] { false, false, false };
+    string[] checkboxes_text = new string[]
+    {
+        "Make you 10x better",
+        "Ask about salary numbers",
+        "Other"
+    };
+    ElementReference choice1, choice2, choice3;
+
+    Guid uuid = Guid.NewGuid();
+
+    private Sidebar sidebar;
+
+
+
+
+
+    public void ResetValues()
+    {
+        job_title = string.Empty;
+        years_of_experience = string.Empty;
+        size_of_company = string.Empty;
+        other_details = string.Empty;
+        other_selected_text = string.Empty;
+        Array.Fill(checkboxes, false);
+    }
+
+
+    private string GetTickedHelp()
+    {
+        string help = "";
+        for (int i = 0; i < 3; i++)
+        {
+            if (checkboxes[i])
+            {
+                if (i > 0)
+                {
+                    help += ", ";
+                }
+                help += checkboxes_text[i];
+                if (i == 2)
+                {
+                    help += $": {other_selected_text}";
+                }
+            }
+        }
+        return help;
+    }
+
+    public async Task<UserPost> GetUserPost()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        return new UserPost
+            {
+                UrlId = uuid.ToString(),
+                JobTitle = job_title,
+                YearsOfExperience = years_of_experience,
+                SizeOfCompany = size_of_company,
+                OtherDetails = other_details,
+                RequiredHelp = GetTickedHelp(),
+                CreatorEmail = user.FindFirst(c => c.Type == ClaimTypes.Email)?.Value,
+                PostCreated = DateTime.Now
+
+        };
+    }
+
+    private async Task SubmitForm()
+    {
+        isDisabled = true;
+
+
+
+        //var response = await slackClient.GetUserByEmailAsync("jeevanjotsinghvital@gmail.com");
+        //Console.WriteLine(JsonConvert.SerializeObject(response.user, Formatting.Indented));
+
+        var curr_post = await GetUserPost();
+        string text = $@"*Job Title:→*  {curr_post.JobTitle}
+*Years of Experience:→*  {curr_post.YearsOfExperience}
+*Size of Company:→*  {curr_post.SizeOfCompany}
+*Other Details:→*  {curr_post.OtherDetails}
+*Required Help in:→*  {curr_post.RequiredHelp}
+*Appointment Link:→*  {NavigationManager.BaseUri}appointments/{curr_post.UrlId}
+        ";
+
+
+        var response_message = await slackApiCalls.MakePost(Secrets.channelID, text);
+        Console.WriteLine(JsonConvert.SerializeObject(response_message, Formatting.Indented));
+        if(response_message.ok)
+        {
+            curr_post.PostId = response_message.channel  + "_&&_" + response_message.ts;
+            // Create toast of message posted,
+            toastService.ShowInfo("Posted on slack channel");
+            // Empty form field
+            ResetValues();
+
+            // Save to db,
+            userPostService.AddUserPost(curr_post);
+            // Show in sidebar,
+            sidebar.GetUserPosts();
+
+            
+        } 
+        else
+        {
+            toastService.ShowError(response_message.error.ToString());
+        }
+        isDisabled = false;
+        //      {
+          //          "ts": "1687561710.566069",
+                    //"channel": "C01M62SGTL6",
+                    //"message": {
+                    //              "text": "hello world",
+                    //  "user": "U05A6BJNYGZ",
+                    //  "username": null,
+                    //  "type": "message",
+                    //  "subtype": null,
+                    //  "ts": "1687561710.566069"
+                    //},
+                    //"ok": true,
+                    //"error": null,
+                    //"needed": null,
+                    //"provided": null,
+                    //"warning": null,
+                    //"response_metadata": null
+          //  }
+
+        //object[] block = new object[1];
+        //block[0] = new
+        //{
+        //    type = "section",
+        //    text = new { type = "mrkdwn", text = "*NEW HELP REQUEST*!" },
+        //    fields = new object[]
+        //    {
+        //        new
+        //        {
+        //            type = "mrkdwn",
+        //            text = "hello"
+        //        }
+        //    }
+        //};
+
+        //// Create the request body
+        //var requestBody = new
+        //{
+        //    channel = channel,
+        //    blocks = block
+        //};
+        //var json = JsonSerializer.Serialize(requestBody);
+        //var content = new StringContent(json, Encoding.UTF8, "application/json");
+        //Console.WriteLine("Start!");
+        //Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(content, Newtonsoft.Json.Formatting.Indented));
+
+        //HttpResponseMessage response = await httpClient.PostAsync(url, content);
+        ////Console.WriteLine(response);
+        //response.EnsureSuccessStatusCode();
+
+        ////// Process the response
+        ////string responseBody = await response.Content.ReadAsStringAsync();
+
+        ////// Do something with the response
+        ////Console.WriteLine(responseBody);
+
+        //isDisabled = true;
+        //await Task.Delay(3000);
+        //Console.WriteLine("Done!");
+
+        //for (int i = 1; i <= 3; i++)
+        //{
+
+        //}
+
+        //isDisabled = false;
+    }
+}

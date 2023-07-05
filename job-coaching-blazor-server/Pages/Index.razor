@@ -1,0 +1,48 @@
+﻿@page "/"
+
+@inject NavigationManager NavigationManager;
+
+<div class="d-flex justify-content-center align-items-center">
+    <div class="flex-row">
+        <h3 style="color: #efefef">Welcome to @name</h3>
+    </div>
+</div>
+<div class="d-flex justify-content-center align-items-center">
+    <img class="jump" src="images/1.png" style="border-radius: 10px"/>
+</div>
+
+
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex justify-content-center align-items-center mt-4">
+            <button @onclick="NavigateToForm" class="btn btn-primary">Go to app</button>
+        </div>
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="d-flex justify-content-center align-items-center mt-4">
+            <button @onclick="NavigateToLogin" class="btn btn-dark me-2">Login</button>
+            <button @onclick="NavigateToRegister" class="btn btn-light">Register</button>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    string name = "YYJ Slack - Job Coaching";
+
+    void NavigateToForm()
+    {
+        NavigationManager.NavigateTo("/form");
+    }
+
+    void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("Identity/Account/Login", true);
+    }
+
+    void NavigateToRegister()
+    {
+        NavigationManager.NavigateTo("Identity/Account/Register", true);
+    }
+}
